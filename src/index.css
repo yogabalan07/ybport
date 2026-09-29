@@ -1,0 +1,259 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-hand: "Caveat", "Architects Daughter", cursive;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+/* Engineering Paper Texture & Grids */
+.bg-grid-paper {
+  background-image: radial-gradient(rgba(20, 21, 23, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.bg-ruled-paper {
+  background-image: linear-gradient(0deg, rgba(20, 21, 23, 0.04) 1px, transparent 1px);
+  background-size: 100% 28px;
+}
+
+.bg-blueprint-grid {
+  background-image: 
+    linear-gradient(rgba(29, 78, 216, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(29, 78, 216, 0.08) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Semi-transparent engineer tape effects */
+.tape-top-center {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-1deg);
+  width: 90px;
+  height: 22px;
+  background-color: rgba(254, 240, 138, 0.65);
+  border-left: 2px dashed rgba(202, 138, 4, 0.4);
+  border-right: 2px dashed rgba(202, 138, 4, 0.4);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.tape-corner-left {
+  position: absolute;
+  top: -8px;
+  left: -12px;
+  transform: rotate(-25deg);
+  width: 65px;
+  height: 18px;
+  background-color: rgba(226, 232, 240, 0.8);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Sketch Border */
+.sketch-border {
+  border: 1.5px solid rgba(20, 21, 23, 0.16);
+  border-radius: 12px;
+  box-shadow: 2px 3px 0px rgba(20, 21, 23, 0.06);
+}
+
+.sketch-border-dark {
+  border: 1.5px solid #141517;
+  border-radius: 12px;
+  box-shadow: 3px 4px 0px #141517;
+}
+
+.sketch-border-hover {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sketch-border-hover:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 6px 0px #141517;
+}
+
+/* Hand marker highlight */
+.marker-yellow {
+  background: linear-gradient(104deg, rgba(254, 240, 138, 0) 0.9%, rgba(254, 240, 138, 0.85) 2.4%, rgba(253, 224, 71, 0.75) 5.8%, rgba(254, 240, 138, 0.1) 93%, rgba(254, 240, 138, 0.7) 96%, rgba(254, 240, 138, 0) 98%);
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+}
+
+.marker-blue {
+  background: linear-gradient(104deg, rgba(191, 219, 254, 0) 0.9%, rgba(191, 219, 254, 0.85) 2.4%, rgba(147, 197, 253, 0.75) 5.8%, rgba(191, 219, 254, 0.1) 93%, rgba(191, 219, 254, 0.7) 96%, rgba(191, 219, 254, 0) 98%);
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #F8F5EE;
+}
+::-webkit-scrollbar-thumb {
+  background: #D4D0C5;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #A8A396;
+}
+
+/* SVG Line Drawing Keyframes */
+@keyframes drawStroke {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.path-draw {
+  stroke-dasharray: 400;
+  stroke-dashoffset: 400;
+  animation: drawStroke 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.path-draw-delayed {
+  stroke-dasharray: 400;
+  stroke-dashoffset: 400;
+  animation: drawStroke 1.4s 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes rfPulse {
+  0% {
+    opacity: 0.2;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.03);
+  }
+  100% {
+    opacity: 0.2;
+    transform: scale(0.96);
+  }
+}
+
+.rf-wave-pulse {
+  transform-origin: center;
+  animation: rfPulse 3s ease-in-out infinite;
+}
+
+@keyframes subtleFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-4px) rotate(0.5deg);
+  }
+}
+
+.animate-subtle-float {
+  animation: subtleFloat 5s ease-in-out infinite;
+}
+
+/* Interactive Input Ink Underline */
+.ink-input-wrapper {
+  position: relative;
+}
+.ink-input-wrapper::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: #1D4ED8;
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.ink-input-wrapper:focus-within::after {
+  width: 100%;
+}
+
+/* Reduced Motion Override */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .path-draw, .path-draw-delayed, .rf-wave-pulse, .animate-subtle-float {
+    animation: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+}
+
+/* Printable / clean resume support */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+  }
+}
+
+/* Predefined Themes: Paper, Dark, Blueprint */
+html[data-theme="dark"] body {
+  background-color: #121316 !important;
+  color: #F1F5F9 !important;
+}
+html[data-theme="dark"] .bg-\[\#F8F5EE\],
+html[data-theme="dark"] .bg-\[\#FAF7F0\],
+html[data-theme="dark"] .bg-\[\#F4F1E8\] {
+  background-color: #121316 !important;
+  color: #F1F5F9 !important;
+}
+html[data-theme="dark"] .bg-\[\#FFFFFF\],
+html[data-theme="dark"] .bg-\[\#FCFBF8\] {
+  background-color: #1A1D24 !important;
+  color: #F1F5F9 !important;
+}
+html[data-theme="dark"] .text-\[\#141517\] {
+  color: #F8FAFC !important;
+}
+html[data-theme="dark"] .text-\[\#575961\] {
+  color: #94A3B8 !important;
+}
+html[data-theme="dark"] .border-\[\#141517\] {
+  border-color: #334155 !important;
+}
+html[data-theme="dark"] .border-\[\#141517\]\/10,
+html[data-theme="dark"] .border-\[\#141517\]\/15,
+html[data-theme="dark"] .border-\[\#141517\]\/20 {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+html[data-theme="blueprint"] body {
+  background-color: #0B1B3D !important;
+  color: #E0F2FE !important;
+}
+html[data-theme="blueprint"] .bg-\[\#F8F5EE\],
+html[data-theme="blueprint"] .bg-\[\#FAF7F0\],
+html[data-theme="blueprint"] .bg-\[\#F4F1E8\] {
+  background-color: #0B1B3D !important;
+  color: #E0F2FE !important;
+}
+html[data-theme="blueprint"] .bg-\[\#FFFFFF\],
+html[data-theme="blueprint"] .bg-\[\#FCFBF8\] {
+  background-color: #0F2755 !important;
+  color: #E0F2FE !important;
+}
+html[data-theme="blueprint"] .text-\[\#141517\] {
+  color: #F0F9FF !important;
+}
+html[data-theme="blueprint"] .text-\[\#575961\] {
+  color: #7DD3FC !important;
+}
+html[data-theme="blueprint"] .border-\[\#141517\] {
+  border-color: #1E3A8A !important;
+}
+html[data-theme="blueprint"] .border-\[\#141517\]\/10,
+html[data-theme="blueprint"] .border-\[\#141517\]\/15,
+html[data-theme="blueprint"] .border-\[\#141517\]\/20 {
+  border-color: rgba(56, 189, 248, 0.25) !important;
+}
