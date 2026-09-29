@@ -1,15 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PROJECTS } from '../data/portfolioData';
 import { Project, ProjectCategory } from '../types/portfolio';
-import { ProjectBlueprintModal } from './ProjectBlueprintModal';
 import { WashiTape, HandDrawnArrow, StarDoodle } from './doodles/DoodleIcons';
 import { Github, ExternalLink, Cpu, FileCode2, Layers, CheckCircle2, ChevronRight, Eye } from 'lucide-react';
+import { ModalLoadingOverlay } from './ModuleLoadingOverlay';
+
+// Blueprint modal is heavy and only needed after a card click → code-split.
+const ProjectBlueprintModal = React.lazy(() =>
+  import('./ProjectBlueprintModal').then((m) => ({ default: m.ProjectBlueprintModal }))
+);
 
 export const Projects: React.FC = () => {
   const [selectedFilter, setSelectedFilter] = useState<ProjectCategory>('All');
   const [activeModalProject, setActiveModalProject] = useState<Project | null>(null);
   const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
+  const [blueprintMounted, setBlueprintMounted] = useState(false);
+
+  // Mount the lazily-loaded blueprint once it is first needed (stays mounted
+  // afterwards so close/reopen behaves exactly as before).
+  useEffect(() => {
+    if (activeModalProject) setBlueprintMounted(true);
+  }, [activeModalProject]);
 
   const filterTabs: ProjectCategory[] = ['All', 'Web', 'IoT', 'Embedded', 'Full Stack'];
 
@@ -306,11 +318,15 @@ export const Projects: React.FC = () => {
 
       </div>
 
-      {/* Blueprint Deep-Dive Modal */}
-      <ProjectBlueprintModal
-        project={activeModalProject}
-        onClose={() => setActiveModalProject(null)}
-      />
+      {/* Blueprint Deep-Dive Modal (lazy: loads on first inspect) */}
+      {blueprintMounted && (
+        <React.Suspense fallback={<ModalLoadingOverlay />}>
+          <ProjectBlueprintModal
+            project={activeModalProject}
+            onClose={() => setActiveModalProject(null)}
+          />
+        </React.Suspense>
+      )}
     </section>
   );
 };

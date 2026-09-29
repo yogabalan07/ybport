@@ -7,31 +7,37 @@ interface NavbarProps {
   onOpenResume: () => void;
 }
 
+// Static navigation definition (module scope: not re-created per render,
+// stable reference for the scroll-spy effect).
+const navLinks = [
+  { label: 'Home', href: '#home', id: 'home' },
+  { label: 'About', href: '#about', id: 'about' },
+  { label: 'Skills', href: '#skills', id: 'skills' },
+  { label: 'Projects', href: '#projects', id: 'projects' },
+  { label: 'Experience', href: '#experience', id: 'experience' },
+  { label: 'Achievements', href: '#achievements', id: 'achievements' },
+  { label: 'Contact', href: '#contact', id: 'contact' },
+];
+
 export const Navbar: React.FC<NavbarProps> = ({ onOpenResume }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('home');
 
-  const navLinks = [
-    { label: 'Home', href: '#home', id: 'home' },
-    { label: 'About', href: '#about', id: 'about' },
-    { label: 'Skills', href: '#skills', id: 'skills' },
-    { label: 'Projects', href: '#projects', id: 'projects' },
-    { label: 'Experience', href: '#experience', id: 'experience' },
-    { label: 'Achievements', href: '#achievements', id: 'achievements' },
-    { label: 'Contact', href: '#contact', id: 'contact' },
-  ];
-
   useEffect(() => {
-    const handleScroll = () => {
+    // Scroll work is coalesced to one rAF callback per frame instead of
+    // running full section measurements on every scroll event.
+    let frame: number | null = null;
+
+    const measure = () => {
+      frame = null;
       setIsScrolled(window.scrollY > 20);
 
       // Determine active section based on scroll offset
-      const sections = navLinks.map(l => document.getElementById(l.id));
       const scrollPos = window.scrollY + 200;
 
-      for (let i = sections.length - 1; i >= 0; i--) {
-        const sec = sections[i];
+      for (let i = navLinks.length - 1; i >= 0; i--) {
+        const sec = document.getElementById(navLinks[i].id);
         if (sec && sec.offsetTop <= scrollPos) {
           setActiveSection(navLinks[i].id);
           break;
@@ -39,8 +45,15 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenResume }) => {
       }
     };
 
+    const handleScroll = () => {
+      if (frame === null) frame = requestAnimationFrame(measure);
+    };
+
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (frame !== null) cancelAnimationFrame(frame);
+    };
   }, []);
 
   return (

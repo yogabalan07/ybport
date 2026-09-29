@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { MotionConfig } from 'motion/react';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { About } from './components/About';
@@ -11,21 +12,38 @@ import { GitHubSection } from './components/GitHubSection';
 import { ResumeSection } from './components/ResumeSection';
 import { Contact } from './components/Contact';
 import { Footer } from './components/Footer';
-import { ResumeModal } from './components/ResumeModal';
-import { SnakeGameModal } from './components/SnakeGameModal';
-import { TerminalModal } from './components/TerminalModal';
-import { ProjectBlueprintModal } from './components/ProjectBlueprintModal';
 import { BootLoader } from './components/BootLoader';
 import { DraftingCursor } from './components/DraftingCursor';
 import { NotFoundPage } from './components/NotFoundPage';
 import { SectionSketchDivider } from './components/doodles/DoodleIcons';
+import { ModalLoadingOverlay } from './components/ModuleLoadingOverlay';
 import { Project } from './types/portfolio';
+
+// Heavy interactive modules are code-split: they only download when first opened.
+const ResumeModal = React.lazy(() =>
+  import('./components/ResumeModal').then((m) => ({ default: m.ResumeModal }))
+);
+const SnakeGameModal = React.lazy(() =>
+  import('./components/SnakeGameModal').then((m) => ({ default: m.SnakeGameModal }))
+);
+const TerminalModal = React.lazy(() =>
+  import('./components/TerminalModal').then((m) => ({ default: m.TerminalModal }))
+);
+const ProjectBlueprintModal = React.lazy(() =>
+  import('./components/ProjectBlueprintModal').then((m) => ({ default: m.ProjectBlueprintModal }))
+);
 
 export default function App() {
   const [isResumeModalOpen, setIsResumeModalOpen] = useState(false);
   const [isSnakeModalOpen, setIsSnakeModalOpen] = useState(false);
   const [isTerminalOpen, setIsTerminalOpen] = useState(false);
   const [terminalInspectProject, setTerminalInspectProject] = useState<Project | null>(null);
+  // Mount-once flags: lazy modals load on first open, then stay mounted so
+  // exit animations, focus restore and reopening behave exactly as before.
+  const [resumeMounted, setResumeMounted] = useState(false);
+  const [snakeMounted, setSnakeMounted] = useState(false);
+  const [terminalMounted, setTerminalMounted] = useState(false);
+  const [blueprintMounted, setBlueprintMounted] = useState(false);
   const [bootCompleted, setBootCompleted] = useState(false);
   const [currentPath, setCurrentPath] = useState(() => window.location.pathname);
   const [currentTheme, setCurrentTheme] = useState<'paper' | 'dark' | 'blueprint'>(() => {
@@ -40,6 +58,20 @@ export default function App() {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', currentTheme);
   }, [currentTheme]);
+
+  // Lazily-mounted modals: fetch their chunk on first open only.
+  useEffect(() => {
+    if (isResumeModalOpen) setResumeMounted(true);
+  }, [isResumeModalOpen]);
+  useEffect(() => {
+    if (isSnakeModalOpen) setSnakeMounted(true);
+  }, [isSnakeModalOpen]);
+  useEffect(() => {
+    if (isTerminalOpen) setTerminalMounted(true);
+  }, [isTerminalOpen]);
+  useEffect(() => {
+    if (terminalInspectProject) setBlueprintMounted(true);
+  }, [terminalInspectProject]);
 
   // Sync browser back/forward buttons
   useEffect(() => {
@@ -88,6 +120,9 @@ export default function App() {
   }
 
   return (
+    // reducedMotion="user": JS-driven Motion animations (entrances, layout) now
+    // respect prefers-reduced-motion, not just the CSS overrides in index.css.
+    <MotionConfig reducedMotion="user">
     <div className="min-h-screen bg-[#F8F5EE] text-[#141517] font-sans selection:bg-[#FACC15] selection:text-[#121316] relative overflow-x-hidden">
       {/* Booting Loader Experience (Short & Non-intrusive) */}
       {!bootCompleted && (
@@ -138,39 +173,56 @@ export default function App() {
       {/* Minimal Footer with Easter Egg Trigger */}
       <Footer onOpenSnakeGame={() => setIsSnakeModalOpen(true)} />
 
-      {/* Fullscreen Printable / Scalable Resume Modal */}
-      <ResumeModal
-        isOpen={isResumeModalOpen}
-        onClose={() => setIsResumeModalOpen(false)}
-      />
+      {/* Fullscreen Printable / Scalable Resume Modal (lazy: loads on first open) */}
+      {resumeMounted && (
+        <Suspense fallback={<ModalLoadingOverlay />}>
+          <ResumeModal
+            isOpen={isResumeModalOpen}
+            onClose={() => setIsResumeModalOpen(false)}
+          />
+        </Suspense>
+      )}
 
-      {/* Mini Snake Game Easter Egg Modal */}
-      <SnakeGameModal
-        isOpen={isSnakeModalOpen}
-        onClose={() => setIsSnakeModalOpen(false)}
-      />
+      {/* Mini Snake Game Easter Egg Modal (lazy: loads on first open) */}
+      {snakeMounted && (
+        <Suspense fallback={<ModalLoadingOverlay />}>
+          <SnakeGameModal
+            isOpen={isSnakeModalOpen}
+            onClose={() => setIsSnakeModalOpen(false)}
+          />
+        </Suspense>
+      )}
 
-      {/* Interactive Command Line Terminal Modal */}
-      <TerminalModal
-        isOpen={isTerminalOpen}
-        onClose={() => setIsTerminalOpen(false)}
-        onOpenResume={() => setIsResumeModalOpen(true)}
-        onOpenSnake={() => setIsSnakeModalOpen(true)}
-        onSelectProject={(proj) => setTerminalInspectProject(proj)}
-        currentTheme={currentTheme}
-        onSetTheme={(theme) => {
-          setCurrentTheme(theme);
-          try {
-            localStorage.setItem('yogabalan_portfolio_theme', theme);
-          } catch {}
-        }}
-      />
+      {/* Interactive Command Line Terminal Modal (lazy: loads on first open) */}
+      {terminalMounted && (
+        <Suspense fallback={<ModalLoadingOverlay />}>
+          <TerminalModal
+            isOpen={isTerminalOpen}
+            onClose={() => setIsTerminalOpen(false)}
+            onOpenResume={() => setIsResumeModalOpen(true)}
+            onOpenSnake={() => setIsSnakeModalOpen(true)}
+            onSelectProject={(proj) => setTerminalInspectProject(proj)}
+            currentTheme={currentTheme}
+            onSetTheme={(theme) => {
+              setCurrentTheme(theme);
+              try {
+                localStorage.setItem('yogabalan_portfolio_theme', theme);
+              } catch {}
+            }}
+          />
+        </Suspense>
+      )}
 
-      {/* Terminal Project Blueprint Deep-Dive Modal */}
-      <ProjectBlueprintModal
-        project={terminalInspectProject}
-        onClose={() => setTerminalInspectProject(null)}
-      />
+      {/* Terminal Project Blueprint Deep-Dive Modal (lazy: loads on first open) */}
+      {blueprintMounted && (
+        <Suspense fallback={<ModalLoadingOverlay />}>
+          <ProjectBlueprintModal
+            project={terminalInspectProject}
+            onClose={() => setTerminalInspectProject(null)}
+          />
+        </Suspense>
+      )}
     </div>
+    </MotionConfig>
   );
 }

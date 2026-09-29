@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { Cpu, Radio, Cloud, Laptop, Activity, Zap } from 'lucide-react';
 
@@ -21,6 +21,7 @@ export const HeroDoodleDiagram: React.FC = () => {
   
   const [activePin, setActivePin] = useState<string | null>(null);
   const [terminalLineIndex, setTerminalLineIndex] = useState(0);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   const terminalCommands = [
     'LoRa.beginPacket();',
@@ -31,10 +32,52 @@ export const HeroDoodleDiagram: React.FC = () => {
   ];
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTerminalLineIndex((prev) => (prev + 1) % terminalCommands.length);
-    }, 2800);
-    return () => clearInterval(timer);
+    // Decorative terminal typing: disabled under prefers-reduced-motion and
+    // paused entirely while the diagram is scrolled offscreen.
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let timer: ReturnType<typeof setInterval> | null = null;
+    let diagramInView = true;
+
+    const stop = () => {
+      if (timer !== null) {
+        clearInterval(timer);
+        timer = null;
+      }
+    };
+    const maybeStart = () => {
+      if (timer === null && diagramInView && !motionQuery.matches) {
+        timer = setInterval(() => {
+          setTerminalLineIndex((prev) => (prev + 1) % terminalCommands.length);
+        }, 2800);
+      }
+    };
+    const handleMotionChange = () => {
+      if (motionQuery.matches) stop();
+      else maybeStart();
+    };
+
+    let observer: IntersectionObserver | null = null;
+    if (rootRef.current && 'IntersectionObserver' in window) {
+      observer = new IntersectionObserver(
+        (entries) => {
+          diagramInView = entries[0]?.isIntersecting ?? true;
+          if (diagramInView) maybeStart();
+          else stop();
+        },
+        { threshold: 0.25 }
+      );
+      observer.observe(rootRef.current);
+    }
+
+    motionQuery.addEventListener('change', handleMotionChange);
+    maybeStart();
+
+    return () => {
+      stop();
+      motionQuery.removeEventListener('change', handleMotionChange);
+      observer?.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const componentsData: Record<string, ComponentSpec> = {
@@ -87,7 +130,7 @@ export const HeroDoodleDiagram: React.FC = () => {
   ];
 
   return (
-    <div className="relative w-full max-w-[580px] mx-auto select-none">
+    <div ref={rootRef} className="relative w-full max-w-[580px] mx-auto select-none">
       {/* Tape effect on top right */}
       <div className="absolute -top-3 right-8 w-28 h-6 bg-amber-100/90 border-x-2 border-dashed border-amber-300/70 rotate-2 shadow-xs pointer-events-none z-20" />
 

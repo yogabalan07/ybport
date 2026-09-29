@@ -4,6 +4,14 @@ export function useFocusTrap(isOpen: boolean, onClose: () => void) {
   const containerRef = useRef<HTMLDivElement>(null);
   const previousActiveElement = useRef<HTMLElement | null>(null);
 
+  // Keep the latest onClose in a ref so the trap effect does not tear down and
+  // rebuild its window listener (and re-focus the first element) every time the
+  // parent re-renders with a new inline onClose identity.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -31,7 +39,7 @@ export function useFocusTrap(isOpen: boolean, onClose: () => void) {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
 
@@ -64,7 +72,7 @@ export function useFocusTrap(isOpen: boolean, onClose: () => void) {
         previousActiveElement.current.focus();
       }
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   return containerRef;
 }

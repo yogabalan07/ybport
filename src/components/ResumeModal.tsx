@@ -145,8 +145,8 @@ ${ACHIEVEMENTS.map(a => `• ${a.title} - ${a.subtitle} (${a.date})`).join('\n')
               </button>
 
               <a
-                href="/resume-yogabalan.pdf"
-                download="Yogabalan_B_R_Resume.pdf"
+                href="/Yogabalan-Resume.pdf"
+                download="Yogabalan-BR-Resume.pdf"
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-[#1D4ED8] rounded-lg shadow-sm hover:bg-[#141517] transition-colors cursor-pointer focus:ring-2 focus:ring-[#1D4ED8]"
                 title="Download PDF resume"
               >

@@ -62,8 +62,8 @@ export const ResumeSection: React.FC<ResumeSectionProps> = ({ onOpenResume }) =>
                 </button>
 
                 <a
-                  href="/resume-yogabalan.pdf"
-                  download="Yogabalan_B_R_Resume.pdf"
+                  href="/Yogabalan-Resume.pdf"
+                  download="Yogabalan-BR-Resume.pdf"
                   className="flex items-center gap-2 px-6 py-3.5 text-sm font-bold text-[#141517] bg-[#FFFFFF] border-2 border-[#141517] rounded-xl shadow-[3px_3px_0px_#141517] hover:bg-[#F4F2EB] hover:shadow-[4px_4px_0px_#141517] hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer"
                 >
                   <Download className="w-4 h-4 text-[#1D4ED8]" />
