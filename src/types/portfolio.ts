@@ -51,7 +51,36 @@ export interface AchievementItem {
   subtitle: string;
   category: 'Hackathon' | 'Competition' | 'Exhibition' | 'Innovation';
   icon: string;
-  date: string;
+  date?: string;
   doodleLabel: string;
   description: string;
+}
+
+export type ContributionLevel = 'NONE' | 'FIRST_QUARTILE' | 'SECOND_QUARTILE' | 'THIRD_QUARTILE' | 'FOURTH_QUARTILE';
+
+export interface ContributionDayData {
+  date: string;
+  contributionCount: number;
+  color: string;
+  contributionLevel: ContributionLevel;
+}
+
+export interface ContributionWeekData {
+  contributionDays: ContributionDayData[];
+}
+
+export interface ContributionCalendarData {
+  totalContributions: number;
+  weeks: ContributionWeekData[];
+}
+
+export interface GitHubRepoApiItem {
+  id: number;
+  name: string;
+  description: string | null;
+  html_url: string;
+  language: string | null;
+  stargazers_count: number;
+  forks_count: number;
+  updated_at: string;
 }

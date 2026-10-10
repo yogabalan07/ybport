@@ -11,7 +11,7 @@ export const PERSONAL_INFO = {
   email: "yogabalan2007yoga@gmail.com",
   github: "https://github.com/yogabalan07",
   githubUsername: "yogabalan07",
-  linkedin: "https://linkedin.com/in/yogabalan-b-r-400a483a",
+  linkedin: "https://www.linkedin.com/in/yogabalan-b-r-400a483a/",
   location: "Tamil Nadu, India",
   college: "KSR College of Engineering",
   degree: "B.E. Computer Science and Engineering",
@@ -19,7 +19,7 @@ export const PERSONAL_INFO = {
   currentYear: "3rd Year",
 };
 
-export const LINKEDIN_HANDLE = PERSONAL_INFO.linkedin.replace(/^https?:\/\/(www\.)?linkedin\.com\/in\//, '');
+export const LINKEDIN_HANDLE = PERSONAL_INFO.linkedin.replace(/^https?:\/\/(www\.)?linkedin\.com\/in\//, '').replace(/\/$/, '');
 
 export const PROJECTS: Project[] = [
   {
@@ -240,44 +240,22 @@ export const EDUCATION: EducationItem = {
 
 export const ACHIEVEMENTS: AchievementItem[] = [
   {
-    id: "hackathon-winner",
-    title: "Hackathon Winner",
-    subtitle: "1st Place in Inter-Collegiate Technical Hackathon",
+    id: "ship-hackathon",
+    title: "Ship Hackathon",
+    subtitle: "First Prize — Intra-College Event",
     category: "Hackathon",
     icon: "trophy",
-    date: "2025 - 2026",
-    doodleLabel: "Top Performer 🏆",
-    description: "Built and deployed an end-to-end IoT sensor logging and emergency alert solution under intense 24-hour time constraint, praised by industry jury for hardware reliability."
+    doodleLabel: "First Prize 🏆",
+    description: "First Prize; intra-college event."
   },
   {
-    id: "project-competition-winner",
-    title: "Project Competition Winner",
-    subtitle: "Gold Medal / 1st Prize in State-Level Engineering Expo",
+    id: "build-2-pitch",
+    title: "Build 2 Pitch",
+    subtitle: "Second Prize — Intra-College Event",
     category: "Competition",
     icon: "medal",
-    date: "2025",
-    doodleLabel: "Gold Medal 🥇",
-    description: "Awarded First Prize for designing and demonstrating the ESP32 LoRa long-range off-grid communication terminal for remote disaster-zone relief."
-  },
-  {
-    id: "technical-exhibitions",
-    title: "Technical Project Exhibitions",
-    subtitle: "Featured Demonstrator at Regional Tech Summits",
-    category: "Exhibition",
-    icon: "rocket",
-    date: "2024 - 2026",
-    doodleLabel: "Live Demo 🚀",
-    description: "Selected to represent department at technical symposiums showcasing autonomous robotics, balancing algorithms, and full-stack campus management portals."
-  },
-  {
-    id: "innovation-projects",
-    title: "Innovation Projects",
-    subtitle: "Campus Incubation & Problem Solver Recognition",
-    category: "Innovation",
-    icon: "sparkles",
-    date: "2024 - Present",
-    doodleLabel: "Patents & R&D 💡",
-    description: "Authored working prototypes addressing campus attendance bottlenecks and community academic resource sharing with measurable collegiate adoption."
+    doodleLabel: "Second Prize 🥈",
+    description: "Second Prize; intra-college event; cash reward received."
   }
 ];
 

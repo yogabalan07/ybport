@@ -42,8 +42,8 @@ export const Achievements: React.FC = () => {
           </div>
         </div>
 
-        {/* 4 Illustrated Cards / Stickers with landing physics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* 2 Confirmed Achievement Cards / Stickers with landing physics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 max-w-4xl mx-auto">
           {ACHIEVEMENTS.map((item, idx) => {
             const initialRotation = idx % 2 === 0 ? 1.5 : -1.5;
 
@@ -101,11 +101,13 @@ export const Achievements: React.FC = () => {
 
                 </div>
 
-                {/* Date stamp footer */}
-                <div className="mt-5 pt-3 border-t border-[#141517]/10 flex items-center justify-between text-[11px] font-mono text-[#575961]">
-                  <span>Timeline:</span>
-                  <span className="font-bold text-[#141517]">{item.date}</span>
-                </div>
+                {/* Date stamp footer (shown only when verified date is provided) */}
+                {item.date && (
+                  <div className="mt-5 pt-3 border-t border-[#141517]/10 flex items-center justify-between text-[11px] font-mono text-[#575961]">
+                    <span>Timeline:</span>
+                    <span className="font-bold text-[#141517]">{item.date}</span>
+                  </div>
+                )}
 
               </motion.div>
             );

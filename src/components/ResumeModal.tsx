@@ -58,7 +58,7 @@ ${PROJECTS.map(p => `• ${p.name}
   Problem Solved: ${p.problemSolved}${p.githubUrl ? `\n  GitHub: ${p.githubUrl}` : ''}`).join('\n\n')}
 
 HONORS & AWARDS:
-${ACHIEVEMENTS.map(a => `• ${a.title} - ${a.subtitle} (${a.date})`).join('\n')}
+${ACHIEVEMENTS.map(a => `• ${a.title} - ${a.subtitle}${a.date ? ` (${a.date})` : ''}`).join('\n')}
 =================================================================`;
 
     const blob = new Blob([cvContent], { type: 'text/plain;charset=utf-8' });
@@ -311,7 +311,7 @@ ${ACHIEVEMENTS.map(a => `• ${a.title} - ${a.subtitle} (${a.date})`).join('\n')
               <ul className="list-disc list-inside space-y-1 text-xs text-[#575961] pl-1">
                 {ACHIEVEMENTS.map((a) => (
                   <li key={a.id}>
-                    <strong className="text-[#141517]">{a.title}</strong> — {a.subtitle} ({a.date})
+                    <strong className="text-[#141517]">{a.title}</strong> — {a.subtitle}{a.date ? ` (${a.date})` : ''}
                   </li>
                 ))}
               </ul>

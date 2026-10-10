@@ -167,11 +167,9 @@ y += 5;
 doc.setFontSize(9);
 doc.setFont('helvetica', 'normal');
 doc.setTextColor(40, 42, 48);
-doc.text('• Hackathon Winner — 1st Place in Inter-Collegiate Technical Hackathon (IoT Emergency Alert Solution)', margin, y);
+doc.text('• Ship Hackathon — First Prize (Intra-College Event)', margin, y);
 y += 4;
-doc.text('• Project Competition Winner — Gold Medal / 1st Prize in State-Level Engineering Expo for LoRa Terminal', margin, y);
-y += 4;
-doc.text('• Regional Technical Demonstrator — Selected to demonstrate robotics and balancing algorithms at collegiate tech summits', margin, y);
+doc.text('• Build 2 Pitch — Second Prize, Cash Reward Received (Intra-College Event)', margin, y);
 
 // Save file
 const pdfBuffer = doc.output('arraybuffer');

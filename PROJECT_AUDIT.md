@@ -697,3 +697,81 @@ TypeScript typing preserved (`githubUrl?: string`, no `any` introduced) · no du
 4. Optional: real contact-delivery backend; authenticated contributions data; `bun.lock` retirement decision (Phase B/E).
 
 **Git safety:** no `git init/add/commit/push` performed; no git history touched. Phase A ends here — Phase B not started.
+
+---
+
+# Phase A.14 — Wall of Wins & Live GitHub Notebook Telemetry Upgrade (2026-10-10)
+
+**Trigger:** Instruction to audit and update `05 — WALL OF WINS` and `06 — GITHUB NOTEBOOK` with absolute factual accuracy, zero invented metrics, and live GitHub data integration.
+
+## 1. 05 — WALL OF WINS Remediation
+- **Removed unconfirmed achievements:**
+  - Removed "Hackathon Winner — 1st Place in Inter-Collegiate Technical Hackathon" (unconfirmed project description & dates).
+  - Removed "Project Competition Winner — Gold Medal / 1st Prize in State-Level Engineering Expo" (unconfirmed level & dates).
+  - Removed "Technical Project Exhibitions" (unconfirmed demonstrator claims).
+  - Removed "Innovation Projects" (unconfirmed patent & incubation claims).
+- **Recorded ONLY the 2 confirmed achievements:**
+  1. **Ship Hackathon** — First Prize; intra-college event. (No cash reward claimed; no invented dates, prize amounts, team names, project titles, or certificates).
+  2. **Build 2 Pitch** — Second Prize; intra-college event; cash reward received. (Cash reward confirmed; no invented cash amounts or dates).
+- **Design & Sketchbook Preservation:**
+  - Grid updated from 4-column to a centered 2-column layout (`grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto gap-6 sm:gap-8`).
+  - Washi tape, hand-drawn star doodles, Trophy & Medal icons, hover physics (`whileHover={{ y: -6 }}`), and shadow tokens preserved.
+  - Timeline footer rendered conditionally (`item.date ? ... : null`) so missing dates are cleanly omitted rather than fabricated.
+  - Synchronized across `src/data/portfolioData.ts`, `src/components/Achievements.tsx`, `src/components/ResumeModal.tsx`, and `scripts/generate-resume.js`.
+  - Regenerated `public/resume-yogabalan.pdf` via `npm run resume`.
+
+## 2. 06 — GITHUB NOTEBOOK Upgrade
+- **Secure Architecture & Server Endpoint:**
+  - Added Vite server-side middleware plugin in `vite.config.ts` handling `/api/github-contributions` in dev and preview modes.
+  - Never exposes tokens to client-side code, `VITE_` variables, committed files, or browser requests.
+  - If `process.env.GITHUB_TOKEN` is present, it directly executes the GitHub GraphQL `contributionCalendar` query.
+  - If `GITHUB_TOKEN` is absent, it queries the public GitHub contribution stream for `yogabalan07`, normalizing all 371 days into the exact GitHub GraphQL `contributionCalendar` schema.
+  - If unconfigured or offline, renders a clean setup card explaining GraphQL token requirements, with manual refresh and retry buttons, never fake data.
+- **Daily Contribution Calendar:**
+  - 365-day grid rendering actual daily contribution counts, dates, and color levels (0 to 4).
+  - Decorative grid is **completely removed** once live data is fetched.
+  - Responsive month labels aligned above weeks; day labels (Mon, Wed, Fri) along the vertical axis.
+  - Accessible tooltip on hover and keyboard focus showing exact count and date (e.g., "4 contributions on Apr 29, 2026", "No contributions on Jan 15, 2026").
+- **Streaks & Totals Calculation (strictly derived from fetched daily calendar):**
+  - **Current Year Total:** Sum of daily counts where year equals current calendar year (266 contributions).
+  - **Latest 365 Days Total:** Sum of all daily counts across the 365-day window (267 contributions).
+  - **Longest Streak:** Calculated by finding maximum consecutive days with >0 contributions (12 days).
+  - **Current Streak:** Consecutive active days ending today or yesterday (0 days, since no commits today or yesterday). Zero-contribution days explicitly break the streak.
+  - **Date Range:** Dynamic display (e.g., Oct 5, 2025 — Oct 10, 2026).
+- **Live Public Repository Statistics:**
+  - Real repository count: 25 (live via GitHub REST API).
+  - Followers: 19 (live via REST API).
+  - Total stars accrued: 1 (summed across all 25 public repositories; no fabricated star metrics).
+  - Total forks: 0 (summed live).
+  - Audited featured repos (`connect`, `NRB-Vidyalaya-LMS-`, `Online-Alumni-Networking-Portal-s`, `Training-Attendance-Feedback-Management`) hydrated with live REST API data (`stargazers_count`, `forks_count`, `language`, `updated_at`, `html_url`).
+  - Repositories deduplicated by name.
+
+## 3. Identity & External Links
+- Normalized LinkedIn URL to `https://www.linkedin.com/in/yogabalan-b-r-400a483a/` across `portfolioData.ts`, `index.html` (JSON-LD `sameAs`), `Contact.tsx`, `Footer.tsx`, and `ResumeModal.tsx`.
+- Verified zero unverified domains, canonical tags, or sitemaps reintroduced.
+
+## 4. Verification Results
+
+| # | Verification Command | Exit Code | Outcome |
+|---|---|---|---|
+| 1 | `npm run lint` (`tsc --noEmit`) | **0** | Zero TypeScript compilation or type errors |
+| 2 | `npm run build` (`vite build`) | **0** | Clean production build to `dist/` |
+| 3 | `npm run resume` | **0** | Cleanly generated `public/resume-yogabalan.pdf` |
+| 4 | `curl http://localhost:3000/api/github-contributions` | **0** | 200 OK, returns live verified 365-day contribution calendar JSON |
+| 5 | REST API Query (`api.github.com/users/yogabalan07`) | **0** | Verified 25 public repos, 19 followers, 1 star total |
+
+## 5. Exact Files Modified
+1. `src/types/portfolio.ts` — Made `AchievementItem.date` optional; added contribution calendar and repo types.
+2. `src/data/portfolioData.ts` — Updated `ACHIEVEMENTS` to only the 2 confirmed items; updated LinkedIn URL to include trailing slash.
+3. `index.html` — Updated JSON-LD `sameAs` LinkedIn URL to `https://www.linkedin.com/in/yogabalan-b-r-400a483a/`.
+4. `src/components/Achievements.tsx` — Updated to 2-column centered layout; conditionally rendered timeline footer.
+5. `src/components/ResumeModal.tsx` — Conditionally rendered dates for achievements in both text and visual CVs.
+6. `scripts/generate-resume.js` — Synchronized honors section with confirmed Ship Hackathon and Build 2 Pitch.
+7. `vite.config.ts` — Added `githubContributionsPlugin` middleware for `/api/github-contributions`.
+8. `src/components/GitHubSection.tsx` — Full live GraphQL/REST telemetry upgrade with streaks, totals, tooltips, responsive labels, refresh, and setup states.
+9. `PROJECT_AUDIT.md` — Updated audit log.
+
+## 6. Facts Needing Confirmation From Owner
+1. Exact dates for Ship Hackathon and Build 2 Pitch (currently omitted to prevent fabrication).
+2. Cash reward amount for Build 2 Pitch (currently stated as "cash reward received" without a guessed figure).
+3. Whether `GITHUB_TOKEN` should be added to production hosting (e.g. Vercel/Netlify/Cloud Run) for direct GraphQL access or whether the public telemetry stream is preferred.
