@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { GITHUB_STATS } from '../data/portfolioData';
-import { ContributionCalendarData, ContributionWeekData, ContributionDayData, GitHubRepoApiItem } from '../types/portfolio';
+import { ContributionCalendarData, ContributionWeekData, ContributionDayData, ContributionLevel, GitHubRepoApiItem } from '../types/portfolio';
 import { WashiTape, HandDrawnArrow } from './doodles/DoodleIcons';
 import {
   Github,
@@ -179,31 +179,133 @@ export const GitHubSection: React.FC = () => {
     }
   }, []);
 
-  // Fetch GraphQL Contribution Calendar via secure server endpoint
+  // Fetch GraphQL Contribution Calendar via secure server endpoint with resilient validation and fallback
   const fetchCalendarData = useCallback(async () => {
     setCalendarStatus('loading');
     setCalendarErrorMsg(null);
+
+    let isHtmlRewriteResponse = false;
+    let serverErrorMessage: string | null = null;
+
+    // 1. Attempt server-side endpoint (/api/github-contributions)
     try {
       const res = await fetch('/api/github-contributions');
-      if (!res.ok) {
-        throw new Error(`Endpoint returned status ${res.status}`);
+
+      // Check HTTP status for rate limits and auth errors
+      if (res.status === 429) {
+        serverErrorMessage = 'GitHub API rate limit exceeded. Please retry in a few moments.';
+      } else if (res.status === 401 || res.status === 403) {
+        serverErrorMessage = 'GitHub authentication error. Please verify server-side GITHUB_TOKEN credentials.';
       }
-      const data = await res.json();
-      if (data.success && data.calendar && Array.isArray(data.calendar.weeks)) {
-        setCalendarData(data.calendar);
-        setCalendarSource(data.source || 'graphql');
-        setCalendarStatus('success');
-        setLastRefreshedAt(new Date());
-      } else if (data.configured === false) {
-        setCalendarStatus('setup_required');
-        setCalendarErrorMsg(data.message || 'Server-side GITHUB_TOKEN configuration required for GraphQL queries.');
+
+      const contentType = res.headers.get('content-type') || '';
+
+      // Check if server returned HTML (Firebase Hosting SPA rewrite returning index.html)
+      if (contentType.toLowerCase().includes('text/html')) {
+        isHtmlRewriteResponse = true;
       } else {
-        setCalendarStatus('error');
-        setCalendarErrorMsg(data.message || 'Could not retrieve verified contribution calendar.');
+        const rawText = await res.text();
+        const trimmed = rawText.trim().toLowerCase();
+
+        if (trimmed.startsWith('<!doctype') || trimmed.startsWith('<html') || trimmed.startsWith('<')) {
+          isHtmlRewriteResponse = true;
+        } else {
+          try {
+            const data = JSON.parse(rawText);
+            if (data.success && data.calendar && Array.isArray(data.calendar.weeks)) {
+              setCalendarData(data.calendar);
+              setCalendarSource(data.source || 'github-graphql');
+              setCalendarStatus('success');
+              setLastRefreshedAt(new Date());
+              return;
+            } else if (data.configured === false) {
+              serverErrorMessage = data.message || 'Server-side GITHUB_TOKEN secret is not configured.';
+            } else {
+              serverErrorMessage = data.message || `Server returned error (${res.status})`;
+            }
+          } catch {
+            isHtmlRewriteResponse = true;
+          }
+        }
       }
-    } catch (err: any) {
+    } catch {
+      // Network failure on /api/github-contributions endpoint
+    }
+
+    // 2. Client-side fallback to public GitHub contribution stream (ZERO tokens required, NO secrets exposed)
+    // Ensures real contribution telemetry displays on Firebase Hosting even before Cloud Functions are deployed
+    try {
+      const publicRes = await fetch(`https://github-contributions-api.jogruber.de/v4/${GITHUB_STATS.username}?y=last`, {
+        headers: { Accept: 'application/json' },
+      });
+
+      if (publicRes.ok) {
+        const pubContentType = publicRes.headers.get('content-type') || '';
+        if (pubContentType.includes('application/json')) {
+          const pubData = await publicRes.json();
+          const rawDays: { date: string; count: number; level: number }[] = pubData.contributions || [];
+
+          if (rawDays.length > 0) {
+            const weeks: ContributionWeekData[] = [];
+            let currentWeek: ContributionDayData[] = [];
+            const levelMap: ContributionLevel[] = [
+              'NONE',
+              'FIRST_QUARTILE',
+              'SECOND_QUARTILE',
+              'THIRD_QUARTILE',
+              'FOURTH_QUARTILE',
+            ];
+            const colorMap = ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'];
+
+            rawDays.forEach((day) => {
+              currentWeek.push({
+                contributionCount: day.count,
+                date: day.date,
+                color: colorMap[day.level] || '#ebedf0',
+                contributionLevel: levelMap[day.level] || 'NONE',
+              });
+              if (currentWeek.length === 7) {
+                weeks.push({ contributionDays: currentWeek });
+                currentWeek = [];
+              }
+            });
+            if (currentWeek.length > 0) {
+              weeks.push({ contributionDays: currentWeek });
+            }
+
+            const total = rawDays.reduce((acc, c) => acc + c.count, 0);
+
+            setCalendarData({
+              totalContributions: total,
+              weeks,
+            });
+            setCalendarSource(
+              isHtmlRewriteResponse
+                ? 'github-public-stream (Firebase Cloud Function not yet deployed)'
+                : 'github-public-stream'
+            );
+            setCalendarStatus('success');
+            setLastRefreshedAt(new Date());
+            return;
+          }
+        }
+      }
+    } catch (fallbackErr: any) {
+      console.warn('Public contribution stream fallback error:', fallbackErr);
+    }
+
+    // 3. If neither succeeded, set appropriate error/setup state
+    if (isHtmlRewriteResponse) {
+      setCalendarStatus('setup_required');
+      setCalendarErrorMsg(
+        'Firebase Hosting returned index.html for /api/github-contributions. The backend Cloud Function is not yet deployed or requires rewrite routing in firebase.json.'
+      );
+    } else if (serverErrorMessage) {
+      setCalendarStatus('setup_required');
+      setCalendarErrorMsg(serverErrorMessage);
+    } else {
       setCalendarStatus('error');
-      setCalendarErrorMsg(err.message || 'Network error fetching contribution calendar');
+      setCalendarErrorMsg('Unable to retrieve verified GitHub contribution telemetry. Real values preserved; no mocks displayed.');
     }
   }, []);
 
