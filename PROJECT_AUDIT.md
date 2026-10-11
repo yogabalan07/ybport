@@ -774,6 +774,7 @@ TypeScript typing preserved (`githubUrl?: string`, no `any` introduced) · no du
 ## 6. Facts Needing Confirmation From Owner
 1. Exact dates for Ship Hackathon and Build 2 Pitch (currently omitted to prevent fabrication).
 2. Cash reward amount for Build 2 Pitch (currently stated as "cash reward received" without a guessed figure).
+<<<<<<< HEAD
 3. ~~Whether `GITHUB_TOKEN` should be added to production hosting~~ — **Resolved in Phase A.15:** the token (if used) lives in Google Secret Manager, injected into the Cloud Function at runtime; the public calendar stream remains the tokenless fallback.
 
 ---
@@ -852,3 +853,54 @@ A real serverless backend now serves the same URL in production, with a single s
 9. `PROJECT_AUDIT.md` — this entry.
 
 **Not done (by instruction):** no deploy, no commit, no push. The live site keeps returning HTML for `/api/github-contributions` until the owner runs the Blaze upgrade + `firebase deploy` sequence in section 4.
+=======
+3. Whether `GITHUB_TOKEN` should be added to production hosting (e.g. Vercel/Netlify/Cloud Run) for direct GraphQL access or whether the public telemetry stream is preferred.
+
+---
+
+# Phase A.15 — Firebase Hosting Root Cause Fix & Production Resilience (2026-10-10)
+
+**Problem Reported:**
+On Firebase Hosting, public repository statistics worked, but the 365-day contribution calendar failed with:
+`Unexpected token '<', '<!doctype '... is not valid JSON`
+
+## 1. Root Cause Identification
+1. **The Request:** Frontend issued `fetch('/api/github-contributions')`.
+2. **Missing Backend / SPA Fallback:** Firebase Hosting is a static asset host unless linked to Cloud Functions via hosting rewrites. Without a deployed Cloud Function and rewrite rule, Firebase Hosting's single-page application fallback rule (`"source": "**", "destination": "/index.html"`) intercepted `/api/github-contributions` and returned `dist/index.html` with HTTP 200 OK and `Content-Type: text/html`.
+3. **Unvalidated JSON Parsing:** `GitHubSection.tsx` checked `if (!res.ok)` (which evaluated to `true` for HTTP 200), and directly invoked `await res.json()`. Parsing the HTML document (`<!doctype html>...`) threw the fatal `SyntaxError: Unexpected token '<', '<!doctype '... is not valid JSON`.
+4. **Environment Isolation:** Vite server middleware (`configureServer` in `vite.config.ts`) only executes in local Node development/preview servers, not inside Firebase Hosting static buckets.
+
+## 2. Implemented Fixes
+1. **Response Validation in `GitHubSection.tsx`:**
+   - Validates HTTP response headers: inspects `Content-Type` for `text/html`.
+   - Inspects response text prefix: detects `<!doctype`, `<html`, or `<` before attempting `JSON.parse()`.
+   - Catches status codes: handles HTTP 401/403 (authentication errors) and HTTP 429 (rate limits) cleanly.
+2. **Public Stream Fallback (Zero Tokens, No Secrets):**
+   - If `/api/github-contributions` returns HTML (indicating the backend function is not yet deployed on Firebase) or network errors, automatically falls back to fetching the verified public GitHub contribution stream (`https://github-contributions-api.jogruber.de/v4/yogabalan07?y=last`).
+   - Maps raw days into the standard 7-day week calendar matching GitHub GraphQL format.
+   - Genuine GitHub data loads immediately in production without exposing any token in frontend code, `VITE_` variables, or browser network traffic.
+3. **Firebase Cloud Functions Backend Prepared:**
+   - Created `firebase.json` with hosting configuration and API rewrite to Cloud Function `api`:
+     ```json
+     {
+       "hosting": {
+         "public": "dist",
+         "rewrites": [
+           { "source": "/api/github-contributions", "function": "api" },
+           { "source": "**", "destination": "/index.html" }
+         ]
+       },
+       "functions": { "source": "functions" }
+     }
+     ```
+   - Created `functions/package.json` and `functions/index.js` implementing a Firebase 2nd-gen HTTPS Cloud Function with Google Cloud Secret Manager (`defineSecret('GITHUB_TOKEN')`) and CORS headers.
+   - Updated `tsconfig.json` with `"exclude": ["node_modules", "dist", "functions"]` to preserve isolated, pristine React SPA compilation.
+4. **Billing Notice:**
+   - Documented that Firebase Cloud Functions requires the Firebase **Blaze plan** (pay-as-you-go) due to outbound network requests to external APIs (`api.github.com`).
+   - If the user prefers to remain on the free Spark plan, the client-side public stream fallback works out-of-the-box without requiring any Cloud Function or Blaze billing.
+
+## 3. Verification Results
+- `npm run lint` (`tsc --noEmit`): **Exit code 0** (0 errors).
+- `npm run build` (`vite build`): **Exit code 0** (dist generated cleanly).
+- HTML detection test: Confirmed HTML responses are cleanly intercepted without JSON parse errors.
+>>>>>>> d9381cd70c86b194f84a34809d76218a95270358

@@ -1,7 +1,10 @@
 {
+<<<<<<< HEAD
   "functions": {
     "source": "functions"
   },
+=======
+>>>>>>> d9381cd70c86b194f84a34809d76218a95270358
   "hosting": {
     "public": "dist",
     "ignore": [
@@ -12,15 +15,25 @@
     "rewrites": [
       {
         "source": "/api/github-contributions",
+<<<<<<< HEAD
         "function": {
           "functionId": "githubContributions",
           "region": "us-central1"
         }
+=======
+        "function": "api"
+>>>>>>> d9381cd70c86b194f84a34809d76218a95270358
       },
       {
         "source": "**",
         "destination": "/index.html"
       }
     ]
+<<<<<<< HEAD
+=======
+  },
+  "functions": {
+    "source": "functions"
+>>>>>>> d9381cd70c86b194f84a34809d76218a95270358
   }
 }
