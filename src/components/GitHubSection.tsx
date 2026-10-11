@@ -185,10 +185,26 @@ export const GitHubSection: React.FC = () => {
     setCalendarErrorMsg(null);
     try {
       const res = await fetch('/api/github-contributions');
+
+      // Detect the classic SPA fallback: Hosting rewrites unknown routes to
+      // index.html, so an HTML body here means the /api rewrite is missing.
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error(
+          `Contribution API returned "${contentType || 'no content-type'}" (HTTP ${res.status}) instead of JSON. ` +
+            'The /api/github-contributions backend route is not deployed — check the Firebase Hosting rewrite and Cloud Function.'
+        );
+      }
       if (!res.ok) {
         throw new Error(`Endpoint returned status ${res.status}`);
       }
-      const data = await res.json();
+
+      let data: any;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error('Contribution API returned an invalid JSON payload.');
+      }
       if (data.success && data.calendar && Array.isArray(data.calendar.weeks)) {
         setCalendarData(data.calendar);
         setCalendarSource(data.source || 'graphql');

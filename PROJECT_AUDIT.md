@@ -774,4 +774,81 @@ TypeScript typing preserved (`githubUrl?: string`, no `any` introduced) · no du
 ## 6. Facts Needing Confirmation From Owner
 1. Exact dates for Ship Hackathon and Build 2 Pitch (currently omitted to prevent fabrication).
 2. Cash reward amount for Build 2 Pitch (currently stated as "cash reward received" without a guessed figure).
-3. Whether `GITHUB_TOKEN` should be added to production hosting (e.g. Vercel/Netlify/Cloud Run) for direct GraphQL access or whether the public telemetry stream is preferred.
+3. ~~Whether `GITHUB_TOKEN` should be added to production hosting~~ — **Resolved in Phase A.15:** the token (if used) lives in Google Secret Manager, injected into the Cloud Function at runtime; the public calendar stream remains the tokenless fallback.
+
+---
+
+# Phase A.15 — Production Calendar Endpoint: Firebase Cloud Function Backend (2026-10-10)
+
+**Trigger:** Deployed Firebase Hosting site's contribution calendar failed with `Unexpected token '<', '<!doctype '... is not valid JSON`. The response body was the portfolio's own `index.html`.
+
+## 1. Root Cause (confirmed against the live deployment)
+
+- `src/components/GitHubSection.tsx` fetches the relative URL `/api/github-contributions`.
+- That route was implemented **only** as a Vite dev/preview middleware plugin (`vite.config.ts`), which runs in `npm run dev` and `npm run preview` but **never ships in the static `dist/` bundle**.
+- `firebase.json` had a single SPA catch-all rewrite: `{"source": "**", "destination": "/index.html"}` — so on the deployed site, `GET /api/github-contributions` matched `**` and returned `index.html` with `Content-Type: text/html` and HTTP 200.
+- The client called `res.json()` on the HTML body, throwing `Unexpected token '<', '<!doctype '`. Verified live: `curl https://about-yb.web.app/api/github-contributions` → `status=200 content_type=text/html`, body starts `<!doctype html>`.
+- The audit's Phase A.14 verification (#4) only tested `curl http://localhost:3000/...` against the dev server and never against a deployed static host — the gap that let this ship.
+
+## 2. Fix Architecture
+
+A real serverless backend now serves the same URL in production, with a single shared fetcher so dev and prod can never drift:
+
+- **`functions/contributions.js`** (new) — shared ESM module, single source of truth:
+  1. If a server-side `GITHUB_TOKEN` is present → official GitHub GraphQL `contributionCalendar` query (same fields: `contributionCount`, `date`, `color`, `contributionLevel`).
+  2. Fallback (tokenless, still genuine data) → public GitHub contribution stream (`github-contributions-api.jogruber.de/v4/yogabalan07?y=last`), normalized into the exact GraphQL schema (371 days → 53 weeks × 7 days, `NONE`…`FOURTH_QUARTILE` levels, canonical colors `#ebedf0`…`#216e39`).
+  3. Both paths have a 12s `AbortSignal.timeout`; on total failure a structured `{success:false, configured, message}` JSON is returned — **never mock data**.
+- **`functions/index.js`** (new) — Firebase Cloud Function 2nd gen (`onRequest`, Node 20, `us-central1`, 256 MiB, 30s timeout). Reads the token from Google Secret Manager via `defineSecret('GITHUB_TOKEN')`; 5-minute in-memory response cache; `Cache-Control: public, max-age=300`; GET-only (405 otherwise); always `application/json`.
+- **`firebase.json`** — added `"functions": {"source": "functions"}` and a rewrite **before** the SPA catch-all (rewrites are matched in order):
+  `/api/github-contributions` → Cloud Function `githubContributions` (us-central1); `**` → `/index.html` remains last.
+- **`vite.config.ts`** — dev/preview middleware now delegates to the same `functions/contributions.js` module (duplicated logic deleted).
+- **`src/components/GitHubSection.tsx`** — hardened `fetchCalendarData`: validates `Content-Type` includes `application/json` **before** `res.json()`, and reports a precise error when HTML is received ("the /api rewrite is not deployed…"); guards `res.json()` parse failures with a clear message. UI, streak math, and green-intensity color mapping unchanged — all still derived from real daily contribution data.
+
+## 3. Security Invariants
+
+- `GITHUB_TOKEN` is **never** in the frontend bundle, client code, or any `VITE_` variable. It exists only in (a) local shell env for dev, read server-side by `vite.config.ts`; (b) Google Secret Manager for production, injected into the function at runtime. `.env*` files remain git-ignored; `.env.example` now documents the rules and both setup paths.
+- The public-calendar fallback requires no token and returns only genuine GitHub contribution data.
+
+## 4. Billing / Secrets / Deployment (required BEFORE deploying the backend — not performed here)
+
+1. **Blaze plan required.** Cloud Functions 2nd gen (`onRequest` v2) requires the Firebase project `about-yb` to be upgraded from Spark (free tier) to **Blaze (pay-as-you-go)**. Estimated cost at portfolio traffic: ~$0/month (Blaze includes a generous free monthly allotment; this function is cached 5 min and serves a single page).
+2. **Upgrade:** Firebase console → Project settings → Usage and billing → Change plan → Blaze → Confirm. (Or `gcloud beta billing projects link about-yb --billing-project=<billing-account-id>`.)
+3. **Secret (optional but recommended):** `firebase functions:secrets:set GITHUB_TOKEN` — paste a classic PAT with only `read:user` scope. Without it the function still works via the public calendar stream (verified: returns 269 contributions, 2025-10-05 → 2026-10-10). Never prefix it `VITE_`.
+4. **Install function deps & deploy (owner-run; deliberately NOT executed in this change):**
+   ```
+   cd functions && npm install && cd ..
+   npm run build
+   firebase deploy --only functions,hosting
+   ```
+5. **Post-deploy verification (must pass before claiming success):**
+   ```
+   curl -i https://about-yb.web.app/api/github-contributions
+   ```
+   Expect `HTTP/2 200`, `content-type: application/json`, and `{"success":true,"source":"...","calendar":{"totalContributions":N,"weeks":[...53 weeks...]}}`. If HTML is still returned, the rewrite/function was not deployed.
+
+## 5. Verification Results (local; production deploy intentionally skipped)
+
+| # | Verification | Result |
+|---|---|---|
+| 1 | `npm run lint` (`tsc --noEmit`) | **Pass** — zero type errors |
+| 2 | `npm run build` (`vite build`) | **Pass** — clean build to `dist/` |
+| 3 | Shared fetcher vs. live upstream (`buildContributionsPayload('')`) | `success=true, source=public-calendar, totalContributions=269, 53 weeks × 7 days, 371 days, levels NONE→FOURTH_QUARTILE, range 2025-10-05 → 2026-10-10` |
+| 4 | Client streak math vs. same payload | `total365=269, 2026 total=268, currentStreak=1, longestStreak=12` |
+| 5 | `vite preview` → `GET /api/github-contributions` | `HTTP 200`, `content-type: application/json`, valid JSON, same real data |
+| 6 | Cloud Function module load (`import('./index.js')`) | Exports `githubContributions` (function), no load errors |
+| 7 | `firebase.json` rewrite order | `/api/github-contributions` → function listed **before** `**` → `/index.html` |
+| 8 | Live deployed endpoint (pre-fix baseline) | `200 text/html` returning `index.html` — confirms root cause; expected to become JSON after owner deploys |
+
+## 6. Exact Files Changed (Phase A.15)
+
+1. `functions/contributions.js` — **new**; shared GraphQL + public-calendar fetcher with normalization, timeouts, no-mock failure payloads.
+2. `functions/index.js` — **new**; Cloud Function 2nd gen `githubContributions` with Secret Manager token, caching, method/content-type guards.
+3. `functions/package.json` — **new**; Node 20 ESM package (`firebase-functions` ^6.3.2, `firebase-admin` ^13.0.2).
+4. `functions/.gitignore` — **new**; ignores `node_modules/`, `.env*`.
+5. `firebase.json` — added `functions` source block; function rewrite inserted before the SPA catch-all.
+6. `vite.config.ts` — dev/preview middleware now delegates to `functions/contributions.js` (removed ~110 lines of duplicated fetch logic).
+7. `src/components/GitHubSection.tsx` — content-type + JSON-parse validation before `res.json()` with actionable HTML-fallback error message.
+8. `.env.example` — documents server-side-only `GITHUB_TOKEN` rules (never `VITE_`), local and production setup paths.
+9. `PROJECT_AUDIT.md` — this entry.
+
+**Not done (by instruction):** no deploy, no commit, no push. The live site keeps returning HTML for `/api/github-contributions` until the owner runs the Blaze upgrade + `firebase deploy` sequence in section 4.
